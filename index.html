@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" c            stroke: white;
+            stroke-width: 4;
+            fill: none;
+            stroke-dasharray: 450.25;
+            stroke-dashoffset: 450.25;
+            opacity: 0;
+            filter: drop-shadow(0 0 8px white);
+            animation: outline-rect-run 3.5s linear forwards;
+            transform-origin: 50% 50;idth=device-width, initial-scale=1.0">
     <title>Conversational FM</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
@@ -68,15 +76,65 @@
         .album-art {
             width: 200px;
             height: 200px;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            background: rgba(255,255,255,0.1);
             border-radius: 15px;
             margin: 0 auto 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             animation: pulse 2s ease-in-out infinite alternate;
+            position: relative;
+            overflow: visible;
+        }
+
+        .album-art.glow-animate::after {
+            content: '';
+            display: none;
+        }
+        .album-art.glow-animate svg {
+            position: absolute;
+            top: -7px; left: -7px;
+            width: calc(100% + 14px);
+            height: calc(100% + 14px);
+            pointer-events: none;
+            z-index: 3;
+            border-radius: 18px;
+            overflow: visible;
+        }
+        .album-art.glow-animate .glow-outline {
+            stroke: white;
+            stroke-width: 4;
+            fill: none;
+            stroke-dasharray: 450.25;
+            stroke-dashoffset: 450.25;
+            opacity: 0;
+            filter: drop-shadow(0 0 8px white);
+            animation: outline-rect-run 2s cubic-bezier(.4, 0, .6, 1) forwards;
+            transform-origin: 50% 50%;
+        }
+        @keyframes outline-rect-run {
+            0% {
+                stroke-dasharray: 450.25;
+                stroke-dashoffset: 450.25;
+                opacity: 0;
+            }
+            3% {
+                opacity: 1;
+                stroke-dasharray: 450.25;
+                stroke-dashoffset: 450.25;
+            }
+            70% {
+                stroke-dasharray: 450.25;
+                stroke-dashoffset: -900.5;
+                opacity: 1;
+            }
+            100% {
+                stroke-dasharray: 0;
+                stroke-dashoffset: -900.5;
+                opacity: 0;
+            }
+        }
         }
 
         @keyframes pulse {
@@ -422,14 +480,43 @@
                 document.getElementById('trackTitle').textContent = 'No track loaded';
                 document.getElementById('trackArtist').textContent = '';
                 document.getElementById('trackAlbum').textContent = '';
-                document.getElementById('albumArt').innerHTML = '<i class="fa-solid fa-music"></i>';
+                const musicIcon = `<svg width="100%" height="100%" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scale(2);">
+                    <path d="M9 18V5l12-2v13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="6" cy="18" r="3" stroke="white" stroke-width="2"/>
+                    <circle cx="18" cy="16" r="3" stroke="white" stroke-width="2"/>
+                </svg>`;
+                document.getElementById('albumArt').innerHTML = musicIcon;
+                document.getElementById('albumArt').classList.remove('glow-animate');
+                document.getElementById('albumArt').style.display = 'flex';
+                document.getElementById('albumArt').style.alignItems = 'center';
+                document.getElementById('albumArt').style.justifyContent = 'center';
                 return;
             }
             const track = tracks[currentTrack];
             document.getElementById('trackTitle').textContent = track.title;
             document.getElementById('trackArtist').textContent = track.artist;
             document.getElementById('trackAlbum').textContent = track.album;
-            document.getElementById('albumArt').innerHTML = `<img src="${track.cover}" alt="Album cover" style="width:100%;height:100%;object-fit:cover;border-radius:15px;">`;
+            const albumArt = document.getElementById('albumArt');
+            albumArt.style.display = 'block'; // Reset display style
+            albumArt.innerHTML = `<img src="${track.cover}" alt="Album cover" style="width:100%;height:100%;object-fit:cover;border-radius:15px;">`;
+            // Remove any previous SVG
+            const oldSvg = albumArt.querySelector('svg');
+            if (oldSvg) oldSvg.remove();
+            albumArt.classList.remove('glow-animate');
+            void albumArt.offsetWidth;
+            albumArt.classList.add('glow-animate');
+            // Add SVG outline (refactored)
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '214');
+            svg.setAttribute('height', '214');
+            svg.setAttribute('viewBox', '0 0 214 214');
+            svg.innerHTML = `<rect x="3" y="3" width="208" height="208" rx="15" class="glow-outline"/>`;
+            albumArt.appendChild(svg);
+            // Remove the glow class and SVG after animation
+            setTimeout(() => {
+                albumArt.classList.remove('glow-animate');
+                if (svg.parentNode) svg.parentNode.removeChild(svg);
+            }, 3500);
             if (audio) {
                 audio.src = track.url;
                 if (isPlaying) {
@@ -522,7 +609,11 @@
             if (lowerMsg.includes('play something chill') || lowerMsg.includes('play chill') || lowerMsg.includes('something chill')) {
                 addDJMessage('🔎 Looking for some chill tracks for you!');
                 fetchJamendoTracks('chill').then(() => {
-                    if (!isPlaying && tracks.length > 0) togglePlay();
+                    if (!isPlaying && tracks.length > 0) {
+                        togglePlay();
+                        const track = tracks[currentTrack];
+                        addDJMessage(`▶️ Now playing: "${track.title}" by ${track.artist}`);
+                    }
                 });
                 return;
             }
