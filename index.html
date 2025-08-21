@@ -324,18 +324,8 @@
             <div class="suggestions">
                 <button class="suggestion" onclick="sendMessage('Play something chill')">Play something chill</button>
                 <button class="suggestion" onclick="sendMessage('Who is this artist?')">Who is this artist?</button>
-                <button class="suggestion" onclick="explainCurrentSong()">Song meaning?</button>
-        // Ask ChatGPT for the meaning of the current song
-        function explainCurrentSong() {
-            if (!tracks.length || !tracks[currentTrack]) {
-                addDJMessage('No track loaded to explain.');
-                return;
-            }
-            const track = tracks[currentTrack];
-            const prompt = `Explain the meaning or story behind the song "${track.title}" by ${track.artist}.`;
-            sendMessage(prompt);
-        }
-                <button class="suggestion" id="jamendoBtn">🎶 Load Jamendo Music</button>
+                <button class="suggestion" onclick="sendMessage('What does this song mean?')">Song meaning?</button>
+
             </div>
 
             <div class="chat-messages" id="chatMessages">
@@ -352,7 +342,7 @@
     </div>
 
     <script>
-        // Jamendo API integration
+    // Jamendo API integration
         const JAMENDO_CLIENT_ID = '7e3a11e7'; // <-- Replace with your real client ID
         let tracks = [];
         let jamendoLoaded = false;
@@ -367,7 +357,6 @@
 
         async function fetchJamendoTracks(genre = null) {
             if (!JAMENDO_CLIENT_ID || JAMENDO_CLIENT_ID === 'YOUR_JAMENDO_CLIENT_ID') {
-                addDJMessage('Jamendo client ID is missing. Please set your client ID in the code.');
                 console.error('Jamendo client ID is missing.');
                 return;
             }
@@ -393,10 +382,8 @@
                     currentTrack = 0;
                     updateTrackDisplay();
                     jamendoLoaded = true;
-                    addDJMessage(`🎶 Jamendo tracks loaded${genre ? ' for ' + genre : ''}! Enjoy free music.`);
                     document.getElementById('playbackStatus').textContent = 'Ready to play • CC-Licensed Music';
                 } else {
-                    addDJMessage('No Jamendo tracks found.');
                     document.getElementById('playbackStatus').textContent = 'No track loaded';
                 }
             } catch (e) {
@@ -523,16 +510,6 @@
             addMessage(message, false);
         }
 
-        async function getAIResponse(userMessage) {
-            const response = await fetch('http://localhost:3001/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage })
-            });
-            const data = await response.json();
-            return data.reply;
-        }
-
         function sendMessage(message) {
             if (!message) message = document.getElementById('messageInput').value;
             if (!message.trim()) return;
@@ -540,124 +517,40 @@
             addMessage(message, true);
             document.getElementById('messageInput').value = '';
 
-            // Use OpenAI backend for AI response
-            getAIResponse(message).then(aiReply => {
-                // --- Prototype: parse AI reply for music commands ---
-                const reply = aiReply.toLowerCase();
-                let actionTaken = false;
-                // Stop/Pause
-                if (/(pause|stop( playing)?|hold|halt|mute|shut up)/.test(reply)) {
-                    if (isPlaying) {
-                        togglePlay();
-                        addDJMessage('⏸️ Music paused.');
-                        actionTaken = true;
-                    }
-                }
-                // Play/Resume
-                else if (/(keep playing|unpause|play( again)?|resume|continue|start( playing)?)/.test(reply)) {
-                    if (!isPlaying) {
-                        togglePlay();
-                        addDJMessage('▶️ Music resumed.');
-                        actionTaken = true;
-                    }
-                }
-                // Next track
-                else if (/(next( track| song)?|skip( this)?( song| track)?|play next)/.test(reply)) {
-                    nextTrack();
-                    addDJMessage('⏭️ Skipping to the next track!');
-                    actionTaken = true;
-                }
-                // Previous track
-                else if (/(previous|back|go back|last( song| track)?)/.test(reply)) {
-                    previousTrack();
-                    addDJMessage('⏮️ Going back to the previous track!');
-                    actionTaken = true;
-                }
-                // Genre/other music logic (optional)
-                // else {
-                //     // Optionally, keep genre/music logic in parallel
-                //     // handleDJResponse(reply);
-                // }
-                // Only show the AI's reply if it is not a direct music control command
-                if (!actionTaken) {
-                    addDJMessage(aiReply);
-                }
-            }).catch(err => {
-                addDJMessage('AI error: ' + err.message);
-            });
+            // Instantly handle 'play something chill' or similar
+            const lowerMsg = message.toLowerCase();
+            if (lowerMsg.includes('play something chill') || lowerMsg.includes('play chill') || lowerMsg.includes('something chill')) {
+                addDJMessage('🔎 Looking for some chill tracks for you!');
+                fetchJamendoTracks('chill').then(() => {
+                    if (!isPlaying && tracks.length > 0) togglePlay();
+                });
+                return;
+            }
+
+            // Simulate AI response
+            setTimeout(() => {
+                handleDJResponse(message.toLowerCase());
+            }, 800);
         }
 
-        function handleDJResponse(message) {
+        // Ask ChatGPT for the meaning of the current song
+        function explainCurrentSong() {
+            if (!tracks.length || !tracks[currentTrack]) {
+                addDJMessage('No track loaded to explain.');
+                return;
+            }
+            const track = tracks[currentTrack];
+            const prompt = `Explain the meaning or story behind the song "${track.title}" by ${track.artist}.`;
+            sendMessage(prompt);
+        }
+         function handleDJResponse(message) {
             const genre = extractGenre(message);
             if (genre) {
                 addDJMessage(`🔎 Looking for some ${genre} tracks for you!`);
                 fetchJamendoTracks(genre);
-                if (!isPlaying) togglePlay();
-                return;
-            }
-            const track = tracks[currentTrack];
-            if (message.includes('chill') || message.includes('relax')) {
-                addDJMessage("🎶 Perfect! Let me queue up some chill vibes for you. This current track has those dreamy synths that just melt away the stress.");
-                if (!isPlaying) togglePlay();
-            } 
-            else if (message.includes('who') || message.includes('artist')) {
-                addDJMessage(`🎨 Great question! ${track.artist} is known for their unique style. ${track.facts}`);
-            }
-            else if (message.includes('mean') || message.includes('about')) {
-                addDJMessage(`🎭 Oh, this one's deep! ${track.meaning} The lyrics really capture that feeling, you know?`);
-            }
-            else if (message.includes('next') || message.includes('skip')) {
-                addDJMessage("🔄 Coming right up! Let me switch to something fresh...");
-                setTimeout(nextTrack, 1000);
-            }
-            else if (message.includes('play') || message.includes('music')) {
-                addDJMessage("🎵 You got it! Starting up the music. Feel free to ask me anything about what's playing!");
-                if (!isPlaying) togglePlay();
-            }
-            else {
-                const responses = [
-                    "🎧 That's a cool question! This track really captures that vibe with its production style.",
-                    "🎵 I love how music can make us think about these things! What do you think about the melody?",
-                    "🎶 Interesting perspective! The artist was probably going for that exact feeling.",
-                    "🎤 Music is so subjective, right? This track hits different for everyone who hears it."
-                ];
-                addDJMessage(responses[Math.floor(Math.random() * responses.length)]);
-            }
-        }
-
-        function toggleVoice() {
-            const voiceBtn = document.getElementById('voiceBtn');
-            isListening = !isListening;
-            
-            if (isListening) {
-                voiceBtn.classList.add('listening');
-                voiceBtn.textContent = '🔴';
-                addDJMessage("🎤 I'm listening... (This is a demo - type your message instead!)");
-                
-                setTimeout(() => {
-                    isListening = false;
-                    voiceBtn.classList.remove('listening');
-                    voiceBtn.textContent = '🎤';
-                }, 3000);
-            } else {
-                voiceBtn.classList.remove('listening');
-                voiceBtn.textContent = '🎤';
-            }
-        }
-
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        }
-
-        // Initialize
-        updateTrackDisplay();
-        
-        // Demo auto-start
-        setTimeout(() => {
-            addDJMessage("🎵 Welcome to Conversational FM! Try asking me to play something chill, or ask about the current track. I'm here to keep the conversation flowing!");
-        }, 1000);
-    </script>
-</body>
-</html>
+                if (!isPlaying) togglePlay();                 return;
+            }             const track = tracks[currentTrack];             if (message.includes('chill') || message.includes('relax')) {                 addDJMessage("🎶 Perfect! Let me queue up some chill vibes for you. This current track has those dreamy synths that just melt away the stress.");                 if (!isPlaying) togglePlay();             } 
+            else if (message.includes('who') || message.includes('artist')) {                 addDJMessage(`🎨 Great question! ${track.artist} is known for their unique style. ${track.facts}`);             }             else if (message.includes('mean') || message.includes('about')) {                 addDJMessage(`🎭 Oh, this one's deep! ${track.meaning} The lyrics really capture that feeling, you know?`);             }             else if (message.includes('next') || message.includes('skip')) {                 addDJMessage("🔄 Coming right up! Let me switch to something fresh...");                 setTimeout(nextTrack, 1000);             }             else if (message.includes('play') || message.includes('music')) {                 addDJMessage("🎵 You got it! Starting up the music. Feel free to ask me anything about what's playing!");                if (!isPlaying) togglePlay();
+             }             else {                 const responses = [                     "🎧 That's a cool question! This track really captures that vibe with its production style.",                     "🎵 I love how music can make us think about these things! What do you think about the melody?",                     "🎶 Interesting perspective! The artist was probably going for that exact feeling.",                     "🎤 Music is so subjective, right? This track hits different for everyone who hears it."                 ];                 addDJMessage(responses[Math.floor(Math.random() * responses.length)]);             }         }          function toggleVoice() {             const voiceBtn = document.getElementById('voiceBtn');             isListening = !isListening;                          if (isListening) {                 voiceBtn.classList.add('listening');                 voiceBtn.textContent = '🔴';                 addDJMessage("🎤 I'm listening... (This is a demo - type your message instead!)");                                  setTimeout(() => {                     isListening = false;                     voiceBtn.classList.remove('listening');                     voiceBtn.textContent = '🎤';
+                }, 3000);             } else {                 voiceBtn.classList.remove('listening');                 voiceBtn.textContent = '🎤';             }         }          function handleKeyPress(event) {             if (event.key === 'Enter') {                 sendMessage();             }         }          // Initialize         updateTrackDisplay();                  // Demo auto-start         setTimeout(() => {             addDJMessage("🎵 Welcome to Conversational FM! Try asking me to play something chill, or ask about the current track. I'm here to keep the conversation flowing!");         }, 1000);
+    </script> </body> </html>
