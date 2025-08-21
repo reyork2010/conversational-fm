@@ -324,7 +324,17 @@
             <div class="suggestions">
                 <button class="suggestion" onclick="sendMessage('Play something chill')">Play something chill</button>
                 <button class="suggestion" onclick="sendMessage('Who is this artist?')">Who is this artist?</button>
-                <button class="suggestion" onclick="sendMessage('What does this song mean?')">Song meaning?</button>
+                <button class="suggestion" onclick="explainCurrentSong()">Song meaning?</button>
+        // Ask ChatGPT for the meaning of the current song
+        function explainCurrentSong() {
+            if (!tracks.length || !tracks[currentTrack]) {
+                addDJMessage('No track loaded to explain.');
+                return;
+            }
+            const track = tracks[currentTrack];
+            const prompt = `Explain the meaning or story behind the song "${track.title}" by ${track.artist}.`;
+            sendMessage(prompt);
+        }
                 <button class="suggestion" id="jamendoBtn">🎶 Load Jamendo Music</button>
             </div>
 
@@ -513,6 +523,16 @@
             addMessage(message, false);
         }
 
+        async function getAIResponse(userMessage) {
+            const response = await fetch('http://localhost:3001/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userMessage })
+            });
+            const data = await response.json();
+            return data.reply;
+        }
+
         function sendMessage(message) {
             if (!message) message = document.getElementById('messageInput').value;
             if (!message.trim()) return;
@@ -520,10 +540,51 @@
             addMessage(message, true);
             document.getElementById('messageInput').value = '';
 
-            // Simulate AI response
-            setTimeout(() => {
-                handleDJResponse(message.toLowerCase());
-            }, 800);
+            // Use OpenAI backend for AI response
+            getAIResponse(message).then(aiReply => {
+                // --- Prototype: parse AI reply for music commands ---
+                const reply = aiReply.toLowerCase();
+                let actionTaken = false;
+                // Stop/Pause
+                if (/(pause|stop( playing)?|hold|halt|mute|shut up)/.test(reply)) {
+                    if (isPlaying) {
+                        togglePlay();
+                        addDJMessage('⏸️ Music paused.');
+                        actionTaken = true;
+                    }
+                }
+                // Play/Resume
+                else if (/(keep playing|unpause|play( again)?|resume|continue|start( playing)?)/.test(reply)) {
+                    if (!isPlaying) {
+                        togglePlay();
+                        addDJMessage('▶️ Music resumed.');
+                        actionTaken = true;
+                    }
+                }
+                // Next track
+                else if (/(next( track| song)?|skip( this)?( song| track)?|play next)/.test(reply)) {
+                    nextTrack();
+                    addDJMessage('⏭️ Skipping to the next track!');
+                    actionTaken = true;
+                }
+                // Previous track
+                else if (/(previous|back|go back|last( song| track)?)/.test(reply)) {
+                    previousTrack();
+                    addDJMessage('⏮️ Going back to the previous track!');
+                    actionTaken = true;
+                }
+                // Genre/other music logic (optional)
+                // else {
+                //     // Optionally, keep genre/music logic in parallel
+                //     // handleDJResponse(reply);
+                // }
+                // Only show the AI's reply if it is not a direct music control command
+                if (!actionTaken) {
+                    addDJMessage(aiReply);
+                }
+            }).catch(err => {
+                addDJMessage('AI error: ' + err.message);
+            });
         }
 
         function handleDJResponse(message) {
