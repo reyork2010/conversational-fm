@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversational FM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .player-section {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .now-playing {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .album-art {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border-radius: 15px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: pulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        .track-info h2 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .track-info p {
+            opacity: 0.8;
+            margin-bottom: 3px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        .play-pause {
+            width: 80px;
+            height: 80px;
+            background: #ff6b6b;
+            font-size: 2rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: #4ecdc4;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .chat-section {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dj-avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #ffd700, #ff8c00);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            max-height: 400px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background: rgba(255,255,255,0.2);
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .dj-message {
+            background: rgba(255,215,0,0.2);
+            margin-right: auto;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+        }
+
+        .voice-input {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .voice-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .voice-btn {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background: #ff6b6b;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-btn:hover {
+            background: #ff5252;
+            transform: scale(1.1);
+        }
+
+        .voice-btn.listening {
+            background: #4ecdc4;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .suggestions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .suggestion {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .suggestion:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .album-art {
+                width: 150px;
+                height: 150px;
+            }
+        }
+
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📻 Conversational FM</h1>
+        <p class="tagline">Your music. Your station. Your voice.</p>
+    </div>
+
+    <div class="main-container">
+        <div class="player-section">
+            <div class="now-playing">
+                <div class="album-art" id="albumArt">🎵</div>
+                <div class="track-info">
+                    <h2 id="trackTitle">Midnight Dreams</h2>
+                    <p id="trackArtist">Synthwave Collective</p>
+                    <p id="trackAlbum">Neon Nights • 2023</p>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="control-btn" onclick="previousTrack()">⏮</button>
+                <button class="control-btn play-pause" id="playPause" onclick="togglePlay()">▶️</button>
+                <button class="control-btn" onclick="nextTrack()">⏭</button>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress" id="progress"></div>
+            </div>
+            
+            <div class="status" id="playbackStatus">Ready to play • CC-Licensed Music</div>
+        </div>
+
+        <div class="chat-section">
+            <div class="dj-avatar">🎧</div>
+            
+            <div class="suggestions">
+                <button class="suggestion" onclick="sendMessage('Play something chill')">Play something chill</button>
+                <button class="suggestion" onclick="sendMessage('Who is this artist?')">Who is this artist?</button>
+                <button class="suggestion" onclick="sendMessage('What does this song mean?')">Song meaning?</button>
+                <button class="suggestion" id="jamendoBtn">🎶 Load Jamendo Music</button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message dj-message">
+                    Hey there! 🎵 I'm your AI DJ. I can play music, answer questions about tracks, and keep the vibe going. What are you in the mood for?
+                </div>
+            </div>
+
+            <div class="input-section">
+                <input type="text" class="voice-input" id="messageInput" placeholder="Ask me anything about music..." onkeypress="handleKeyPress(event)">
+                <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()">🎤</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Jamendo API integration
+        const JAMENDO_CLIENT_ID = '7e3a11e7'; // <-- Replace with your real client ID
+        let tracks = [];
+        let jamendoLoaded = false;
+
+        let currentTrack = 0;
+        let isPlaying = false;
+        let progress = 0;
+        let progressInterval;
+
+        async function fetchJamendoTracks() {
+            if (!JAMENDO_CLIENT_ID || JAMENDO_CLIENT_ID === 'YOUR_JAMENDO_CLIENT_ID') {
+                addDJMessage('Jamendo client ID is missing. Please set your client ID in the code.');
+                console.error('Jamendo client ID is missing.');
+                return;
+            }
+            // Broaden the query: remove fuzzytags, use order=popularity_total
+            const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=10&audioformat=mp31&include=musicinfo&order=popularity_total`;
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                console.log('Jamendo API response:', data);
+                tracks = data.results.map(track => ({
+                    title: track.name,
+                    artist: track.artist_name,
+                    album: track.album_name || '',
+                    emoji: '🎶',
+                    facts: track.musicinfo ? track.musicinfo.description || '' : '',
+                    meaning: '',
+                    url: track.audio
+                }));
+                if (tracks.length > 0) {
+                    currentTrack = 0;
+                    updateTrackDisplay();
+                    jamendoLoaded = true;
+                    addDJMessage('🎶 Jamendo tracks loaded! Enjoy free music.');
+                    document.getElementById('playbackStatus').textContent = 'Ready to play • CC-Licensed Music';
+                } else {
+                    addDJMessage('No Jamendo tracks found.');
+                    document.getElementById('playbackStatus').textContent = 'No track loaded';
+                }
+            } catch (e) {
+                addDJMessage('Jamendo API error: ' + e.message);
+                console.error('Jamendo API error:', e);
+                document.getElementById('playbackStatus').textContent = 'No track loaded';
+            }
+        }
+
+        // Add a button to load Jamendo tracks
+        window.addEventListener('DOMContentLoaded', () => {
+            audio = document.createElement('audio');
+            audio.id = 'audioPlayer';
+            audio.style.display = 'none';
+            document.body.appendChild(audio);
+            // Set status to no track loaded
+            document.getElementById('playbackStatus').textContent = 'No track loaded';
+            audio.addEventListener('ended', nextTrack);
+            // Auto-load Jamendo tracks
+            fetchJamendoTracks();
+        });
+
+        function updateTrackDisplay() {
+            if (!tracks.length || !tracks[currentTrack]) {
+                document.getElementById('trackTitle').textContent = 'No track loaded';
+                document.getElementById('trackArtist').textContent = '';
+                document.getElementById('trackAlbum').textContent = '';
+                document.getElementById('albumArt').textContent = '🎶';
+                return;
+            }
+            const track = tracks[currentTrack];
+            document.getElementById('trackTitle').textContent = track.title;
+            document.getElementById('trackArtist').textContent = track.artist;
+            document.getElementById('trackAlbum').textContent = track.album;
+            document.getElementById('albumArt').textContent = track.emoji;
+            if (audio) {
+                audio.src = track.url;
+                if (isPlaying) {
+                    audio.play();
+                }
+            }
+        }
+
+        function togglePlay() {
+            if (!tracks.length || !tracks[currentTrack]) return;
+            isPlaying = !isPlaying;
+            const playPauseBtn = document.getElementById('playPause');
+            const status = document.getElementById('playbackStatus');
+            if (isPlaying) {
+                playPauseBtn.textContent = '⏸️';
+                status.textContent = 'Now Playing • ' + tracks[currentTrack].title;
+                if (audio) audio.play();
+                startProgress();
+            } else {
+                playPauseBtn.textContent = '▶️';
+                status.textContent = 'Paused • ' + tracks[currentTrack].title;
+                if (audio) audio.pause();
+                clearInterval(progressInterval);
+            }
+        }
+
+        function startProgress() {
+            clearInterval(progressInterval);
+            progress = 0;
+            progressInterval = setInterval(() => {
+                if (audio && audio.duration) {
+                    progress = (audio.currentTime / audio.duration) * 100;
+                } else {
+                    progress += 0.5;
+                }
+                document.getElementById('progress').style.width = progress + '%';
+                if (progress >= 100) {
+                    nextTrack();
+                }
+            }, 100);
+        }
+
+        function nextTrack() {
+            currentTrack = (currentTrack + 1) % tracks.length;
+            updateTrackDisplay();
+            progress = 0;
+            document.getElementById('progress').style.width = '0%';
+            if (isPlaying) {
+                if (audio) audio.play();
+                startProgress();
+            }
+            setTimeout(() => {
+                addDJMessage(`🎵 Now spinning: "${tracks[currentTrack].title}" by ${tracks[currentTrack].artist}. This one's got that perfect vibe!`);
+            }, 500);
+        }
+
+        function previousTrack() {
+            currentTrack = currentTrack === 0 ? tracks.length - 1 : currentTrack - 1;
+            updateTrackDisplay();
+            progress = 0;
+            document.getElementById('progress').style.width = '0%';
+            if (isPlaying) {
+                if (audio) audio.play();
+                startProgress();
+            }
+        }
+
+        function addMessage(message, isUser = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'dj-message'}`;
+            messageDiv.textContent = message;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addDJMessage(message) {
+            addMessage(message, false);
+        }
+
+        function sendMessage(message) {
+            if (!message) message = document.getElementById('messageInput').value;
+            if (!message.trim()) return;
+
+            addMessage(message, true);
+            document.getElementById('messageInput').value = '';
+
+            // Simulate AI response
+            setTimeout(() => {
+                handleDJResponse(message.toLowerCase());
+            }, 800);
+        }
+
+        function handleDJResponse(message) {
+            const track = tracks[currentTrack];
+            
+            if (message.includes('chill') || message.includes('relax')) {
+                addDJMessage("🎶 Perfect! Let me queue up some chill vibes for you. This current track has those dreamy synths that just melt away the stress.");
+                if (!isPlaying) togglePlay();
+            } 
+            else if (message.includes('who') || message.includes('artist')) {
+                addDJMessage(`🎨 Great question! ${track.artist} is known for their unique style. ${track.facts}`);
+            }
+            else if (message.includes('mean') || message.includes('about')) {
+                addDJMessage(`🎭 Oh, this one's deep! ${track.meaning} The lyrics really capture that feeling, you know?`);
+            }
+            else if (message.includes('next') || message.includes('skip')) {
+                addDJMessage("🔄 Coming right up! Let me switch to something fresh...");
+                setTimeout(nextTrack, 1000);
+            }
+            else if (message.includes('play') || message.includes('music')) {
+                addDJMessage("🎵 You got it! Starting up the music. Feel free to ask me anything about what's playing!");
+                if (!isPlaying) togglePlay();
+            }
+            else {
+                const responses = [
+                    "🎧 That's a cool question! This track really captures that vibe with its production style.",
+                    "🎵 I love how music can make us think about these things! What do you think about the melody?",
+                    "🎶 Interesting perspective! The artist was probably going for that exact feeling.",
+                    "🎤 Music is so subjective, right? This track hits different for everyone who hears it."
+                ];
+                addDJMessage(responses[Math.floor(Math.random() * responses.length)]);
+            }
+        }
+
+        function toggleVoice() {
+            const voiceBtn = document.getElementById('voiceBtn');
+            isListening = !isListening;
+            
+            if (isListening) {
+                voiceBtn.classList.add('listening');
+                voiceBtn.textContent = '🔴';
+                addDJMessage("🎤 I'm listening... (This is a demo - type your message instead!)");
+                
+                setTimeout(() => {
+                    isListening = false;
+                    voiceBtn.classList.remove('listening');
+                    voiceBtn.textContent = '🎤';
+                }, 3000);
+            } else {
+                voiceBtn.classList.remove('listening');
+                voiceBtn.textContent = '🎤';
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Initialize
+        updateTrackDisplay();
+        
+        // Demo auto-start
+        setTimeout(() => {
+            addDJMessage("🎵 Welcome to Conversational FM! Try asking me to play something chill, or ask about the current track. I'm here to keep the conversation flowing!");
+        }, 1000);
+    </script>
+</body>
+</html>
