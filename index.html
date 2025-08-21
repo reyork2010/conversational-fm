@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conversational FM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -351,14 +352,19 @@
         let progress = 0;
         let progressInterval;
 
-        async function fetchJamendoTracks() {
+        // List of supported genres
+        const SUPPORTED_GENRES = ['hiphop', 'chill', 'lofi', 'pop', 'rock', 'jazz', 'classical', 'electronic', 'ambient', 'blues', 'folk', 'metal', 'reggae', 'country', 'funk', 'soul', 'indie', 'dance', 'punk', 'latin', 'rnb'];
+
+        async function fetchJamendoTracks(genre = null) {
             if (!JAMENDO_CLIENT_ID || JAMENDO_CLIENT_ID === 'YOUR_JAMENDO_CLIENT_ID') {
                 addDJMessage('Jamendo client ID is missing. Please set your client ID in the code.');
                 console.error('Jamendo client ID is missing.');
                 return;
             }
-            // Broaden the query: remove fuzzytags, use order=popularity_total
-            const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=10&audioformat=mp31&include=musicinfo&order=popularity_total`;
+            let url = `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=10&audioformat=mp31&include=musicinfo&order=popularity_total`;
+            if (genre) {
+                url += `&tags=${encodeURIComponent(genre)}`;
+            }
             try {
                 const res = await fetch(url);
                 const data = await res.json();
@@ -370,13 +376,14 @@
                     emoji: '🎶',
                     facts: track.musicinfo ? track.musicinfo.description || '' : '',
                     meaning: '',
-                    url: track.audio
+                    url: track.audio,
+                    cover: track.album_image || 'https://via.placeholder.com/200x200?text=No+Cover'
                 }));
                 if (tracks.length > 0) {
                     currentTrack = 0;
                     updateTrackDisplay();
                     jamendoLoaded = true;
-                    addDJMessage('🎶 Jamendo tracks loaded! Enjoy free music.');
+                    addDJMessage(`🎶 Jamendo tracks loaded${genre ? ' for ' + genre : ''}! Enjoy free music.`);
                     document.getElementById('playbackStatus').textContent = 'Ready to play • CC-Licensed Music';
                 } else {
                     addDJMessage('No Jamendo tracks found.');
@@ -387,6 +394,16 @@
                 console.error('Jamendo API error:', e);
                 document.getElementById('playbackStatus').textContent = 'No track loaded';
             }
+        }
+
+        function extractGenre(message) {
+            message = message.toLowerCase();
+            for (const genre of SUPPORTED_GENRES) {
+                if (message.includes(genre)) {
+                    return genre;
+                }
+            }
+            return null;
         }
 
         // Add a button to load Jamendo tracks
@@ -400,6 +417,7 @@
             audio.addEventListener('ended', nextTrack);
             // Auto-load Jamendo tracks
             fetchJamendoTracks();
+            document.getElementById('playPause').innerHTML = '<i class="fa-solid fa-play" style="color:white;"></i>';
         });
 
         function updateTrackDisplay() {
@@ -407,14 +425,14 @@
                 document.getElementById('trackTitle').textContent = 'No track loaded';
                 document.getElementById('trackArtist').textContent = '';
                 document.getElementById('trackAlbum').textContent = '';
-                document.getElementById('albumArt').textContent = '🎶';
+                document.getElementById('albumArt').innerHTML = '<i class="fa-solid fa-music"></i>';
                 return;
             }
             const track = tracks[currentTrack];
             document.getElementById('trackTitle').textContent = track.title;
             document.getElementById('trackArtist').textContent = track.artist;
             document.getElementById('trackAlbum').textContent = track.album;
-            document.getElementById('albumArt').textContent = track.emoji;
+            document.getElementById('albumArt').innerHTML = `<img src="${track.cover}" alt="Album cover" style="width:100%;height:100%;object-fit:cover;border-radius:15px;">`;
             if (audio) {
                 audio.src = track.url;
                 if (isPlaying) {
@@ -429,12 +447,12 @@
             const playPauseBtn = document.getElementById('playPause');
             const status = document.getElementById('playbackStatus');
             if (isPlaying) {
-                playPauseBtn.textContent = '⏸️';
+                playPauseBtn.innerHTML = '<i class="fa-solid fa-pause" style="color:white;"></i>';
                 status.textContent = 'Now Playing • ' + tracks[currentTrack].title;
                 if (audio) audio.play();
                 startProgress();
             } else {
-                playPauseBtn.textContent = '▶️';
+                playPauseBtn.innerHTML = '<i class="fa-solid fa-play" style="color:white;"></i>';
                 status.textContent = 'Paused • ' + tracks[currentTrack].title;
                 if (audio) audio.pause();
                 clearInterval(progressInterval);
@@ -509,8 +527,14 @@
         }
 
         function handleDJResponse(message) {
+            const genre = extractGenre(message);
+            if (genre) {
+                addDJMessage(`🔎 Looking for some ${genre} tracks for you!`);
+                fetchJamendoTracks(genre);
+                if (!isPlaying) togglePlay();
+                return;
+            }
             const track = tracks[currentTrack];
-            
             if (message.includes('chill') || message.includes('relax')) {
                 addDJMessage("🎶 Perfect! Let me queue up some chill vibes for you. This current track has those dreamy synths that just melt away the stress.");
                 if (!isPlaying) togglePlay();
